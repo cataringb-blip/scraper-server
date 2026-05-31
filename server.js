@@ -10,7 +10,16 @@ async function getBrowser() {
   if (!browser) {
     browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
     });
   }
   return browser;
@@ -23,13 +32,13 @@ app.get('/scrape', async (req, res) => {
     return res.status(400).json({ error: 'URL is required' });
   }
 
-  let page;
+  let context;
   try {
     const browser = await getBrowser();
-    const context = await browser.newContext({
+    context = await browser.newContext({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     });
-    page = await context.newPage();
+    const page = await context.newPage();
     
     await page.goto(url, { 
       waitUntil: 'networkidle',
@@ -39,7 +48,6 @@ app.get('/scrape', async (req, res) => {
     await page.waitForTimeout(2000);
 
     const content = await page.evaluate(() => {
-      // Remove unwanted elements
       const remove = document.querySelectorAll('script, style, nav, header, footer, iframe, noscript');
       remove.forEach(el => el.remove());
       return document.body.innerText;
@@ -53,7 +61,8 @@ app.get('/scrape', async (req, res) => {
     });
 
   } catch (error) {
-    if (page) await page.close().catch(() => {});
+    if (context) await context.close().catch(() => {});
+    browser = null;
     res.status(500).json({ error: error.message, url: url });
   }
 });
