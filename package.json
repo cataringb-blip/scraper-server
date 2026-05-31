@@ -2,7 +2,7 @@
   "name": "scraper-server",
   "version": "1.0.0",
   "scripts": {
-    "start": "npx playwright install-deps chromium && npx playwright install chromium && node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "playwright": "^1.40.0",
